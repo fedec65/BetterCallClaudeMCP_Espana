@@ -1,0 +1,48 @@
+{
+  "mcpServers": {
+    "boe-legislacion": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/boe-legislacion/src/server.ts"]
+    },
+    "legal-citations-esp": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/legal-citations-esp/src/server.ts"]
+    },
+    "legal-persona-esp": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/legal-persona-esp/src/server.ts"]
+    },
+    "cendoj-jurisprudencia": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/cendoj-jurisprudencia/src/server.ts"]
+    },
+    "tribunal-constitucional": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/tribunal-constitucional/src/server.ts"]
+    },
+    "eu-law-esp": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/eu-law-esp/src/server.ts"]
+    },
+    "congreso-debates": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/congreso-debates/src/server.ts"]
+    },
+    "doctrina-academica": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/doctrina-academica/src/server.ts"]
+    },
+    "derecho-historico": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/derecho-historico/src/server.ts"]
+    },
+    "catalunya-legal": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/catalunya-legal/src/server.ts"]
+    },
+    "busqueda-general": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/busqueda-general/src/server.ts"]
+    }
+  }
+}

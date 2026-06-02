@@ -1,0 +1,59 @@
+{
+  "mcpServers": {
+    "boe-legislacion": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "boe-legislacion"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    },
+    "legal-citations-esp": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "legal-citations-esp"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    },
+    "legal-persona-esp": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "legal-persona-esp"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    },
+    "cendoj-jurisprudencia": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "cendoj-jurisprudencia"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    },
+    "tribunal-constitucional": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "tribunal-constitucional"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    },
+    "eu-law-esp": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "eu-law-esp"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    },
+    "congreso-debates": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "congreso-debates"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    },
+    "doctrina-academica": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "doctrina-academica"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    },
+    "derecho-historico": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "derecho-historico"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    },
+    "catalunya-legal": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "catalunya-legal"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    },
+    "busqueda-general": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "busqueda-general"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    }
+  }
+}

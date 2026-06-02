@@ -10,6 +10,15 @@ This repository contains the MCP servers that power the Spanish-legal research c
 https://mcp.bettercallclaude.es
 ```
 
+## Client Configuration
+
+See [`docs/08-CLIENT-CONFIGURATIONS.md`](docs/08-CLIENT-CONFIGURATIONS.md) for full setup instructions.
+
+Quick start:
+- **Claude Desktop (local)**: Copy [`claude-desktop-config.json`](claude-desktop-config.json) to your Claude Desktop config folder
+- **Claude Desktop (remote via Railway)**: Copy [`claude-desktop-remote-config.json`](claude-desktop-remote-config.json) (uses the stdio→HTTP bridge)
+- **HTTP API**: `POST https://mcp.bettercallclaude.es/<server-name>/mcp`
+
 ## Servers
 
 ### Tier 1 — Official / Free
