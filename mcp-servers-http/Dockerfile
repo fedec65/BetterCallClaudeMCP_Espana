@@ -21,6 +21,21 @@ COPY mcp-servers-http/package*.json mcp-servers-http/
 
 RUN npm ci
 
+# Copy tsconfig files
+COPY mcp-servers/shared/tsconfig.json mcp-servers/shared/
+COPY mcp-servers/boe-legislacion/tsconfig.json mcp-servers/boe-legislacion/
+COPY mcp-servers/cendoj-jurisprudencia/tsconfig.json mcp-servers/cendoj-jurisprudencia/
+COPY mcp-servers/tribunal-constitucional/tsconfig.json mcp-servers/tribunal-constitucional/
+COPY mcp-servers/eu-law-esp/tsconfig.json mcp-servers/eu-law-esp/
+COPY mcp-servers/congreso-debates/tsconfig.json mcp-servers/congreso-debates/
+COPY mcp-servers/legal-citations-esp/tsconfig.json mcp-servers/legal-citations-esp/
+COPY mcp-servers/legal-persona-esp/tsconfig.json mcp-servers/legal-persona-esp/
+COPY mcp-servers/doctrina-academica/tsconfig.json mcp-servers/doctrina-academica/
+COPY mcp-servers/derecho-historico/tsconfig.json mcp-servers/derecho-historico/
+COPY mcp-servers/catalunya-legal/tsconfig.json mcp-servers/catalunya-legal/
+COPY mcp-servers/busqueda-general/tsconfig.json mcp-servers/busqueda-general/
+COPY mcp-servers-http/tsconfig.json mcp-servers-http/
+
 # Copy source code
 COPY mcp-servers/shared/src mcp-servers/shared/src
 COPY mcp-servers/boe-legislacion/src mcp-servers/boe-legislacion/src
