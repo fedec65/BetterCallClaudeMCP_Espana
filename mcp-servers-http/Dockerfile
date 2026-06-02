@@ -36,6 +36,8 @@ COPY mcp-servers/catalunya-legal/src mcp-servers/catalunya-legal/src
 COPY mcp-servers/busqueda-general/src mcp-servers/busqueda-general/src
 COPY mcp-servers-http/src mcp-servers-http/src
 
+# Build shared first (other workspaces depend on it)
+RUN npm run build -w mcp-servers/shared
 RUN npm run build --workspaces
 
 # Production stage
