@@ -9,17 +9,22 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces",
-    "test": "npm test --workspaces",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "start": "npm --workspace mcp-servers-http run start"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
+    "@types/supertest": "^7.2.0",
     "@typescript-eslint/eslint-plugin": "^7.13.0",
     "@typescript-eslint/parser": "^7.13.0",
+    "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^8.57.0",
-    "typescript": "^5.4.5"
+    "supertest": "^7.2.2",
+    "typescript": "^5.4.5",
+    "vitest": "^4.1.8"
   },
   "engines": {
     "node": ">=20.0.0",

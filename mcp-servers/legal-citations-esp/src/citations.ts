@@ -8,7 +8,7 @@ export const CITATION_PATTERNS = {
   ecli: /^ECLI:ES:([A-Z]+):(\d{4}):(\d+[A-Z]?)$/i,
 
   // Ley / Ley Orgánica
-  ley: /^(Ley|L\.?\s+)?(?:Org[aá]nica\s+)?(\d+)\/(\d{4})\b/i,
+  ley: /^(Ley\s+|L\.?\s+)?(?:Org[aá]nica\s+)?(\d+)\/(\d{4})\b/i,
   leyOrganica: /^(Ley\s+)?Org[aá]nica\s+(\d+)\/(\d{4})\b/i,
 
   // Real Decreto variants
@@ -100,7 +100,7 @@ export function parseCitation(citation: string): ParsedCitation {
   // Ley Orgánica
   const loMatch = trimmed.match(CITATION_PATTERNS.leyOrganica);
   if (loMatch) {
-    const [, number, year] = loMatch;
+    const [, , number, year] = loMatch;
     return {
       ...base,
       type: 'ley-organica',
@@ -200,8 +200,11 @@ export function formatCitation(citation: string, format: 'official' | 'apa' | 's
     case 'official':
       return parsed.normalized;
     case 'short':
-      if (parsed.type === 'ley' || parsed.type === 'ley-organica') {
+      if (parsed.type === 'ley-organica') {
         return `LO ${parsed.components.number}/${parsed.components.year}`;
+      }
+      if (parsed.type === 'ley') {
+        return `Ley ${parsed.components.number}/${parsed.components.year}`;
       }
       if (parsed.type === 'real-decreto') {
         return `RD ${parsed.components.number}/${parsed.components.year}`;

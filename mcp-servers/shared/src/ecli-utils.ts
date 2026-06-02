@@ -1,4 +1,4 @@
-const ECLI_REGEX = /^ECLI:ES:([A-Z]+):(\d{4}):\d+$/;
+const ECLI_REGEX = /^ECLI:ES:([A-Z]+):(\d{4}):\d+[A-Z]?$/i;
 
 export function isValidEcli(ecli: string): boolean {
   return ECLI_REGEX.test(ecli.toUpperCase());
