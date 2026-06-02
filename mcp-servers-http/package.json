@@ -1,0 +1,31 @@
+{
+  "name": "@bettercallclaude/esp-mcp-http",
+  "version": "1.0.0",
+  "description": "HTTP aggregator for BetterCallClaude España MCP servers",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@bettercallclaude/esp-boe-legislacion": "^1.0.0",
+    "@bettercallclaude/esp-legal-citations": "^1.0.0",
+    "@bettercallclaude/esp-legal-persona": "^1.0.0",
+    "@bettercallclaude/esp-eu-law": "^1.0.0",
+    "@bettercallclaude/esp-cendoj-jurisprudencia": "^1.0.0",
+    "@bettercallclaude/esp-tribunal-constitucional": "^1.0.0",
+    "@bettercallclaude/esp-congreso-debates": "^1.0.0",
+    "@bettercallclaude/esp-doctrina-academica": "^1.0.0",
+    "@bettercallclaude/esp-derecho-historico": "^1.0.0",
+    "@bettercallclaude/esp-catalunya-legal": "^1.0.0",
+    "@bettercallclaude/esp-busqueda-general": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.0",
+    "typescript": "^5.4.5"
+  }
+}

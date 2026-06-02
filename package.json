@@ -1,0 +1,29 @@
+{
+  "name": "@bettercallclaude/mcp-espana",
+  "version": "1.0.0",
+  "description": "BetterCallClaude MCP servers for Spanish legal research",
+  "private": true,
+  "workspaces": [
+    "mcp-servers/*",
+    "mcp-servers-http"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm test --workspaces",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "start": "npm --workspace mcp-servers-http run start"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "license": "AGPL-3.0-or-later"
+}

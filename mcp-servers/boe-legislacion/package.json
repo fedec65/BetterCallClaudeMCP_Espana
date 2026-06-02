@@ -1,0 +1,19 @@
+{
+  "name": "@bettercallclaude/esp-boe-legislacion",
+  "version": "1.0.0",
+  "description": "BOE consolidated legislation MCP server for Spain",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "@bettercallclaude/esp-shared": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.4.5"
+  }
+}
