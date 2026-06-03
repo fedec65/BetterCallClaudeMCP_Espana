@@ -4,26 +4,51 @@
 
 BetterCallClaude España exposes 11 MCP servers via the **official MCP HTTP protocol** (`StreamableHTTPServerTransport`).
 
-Key protocol requirements:
-- **Header**: `Accept: application/json, text/event-stream`
-- **Handshake**: `initialize` request required before any other call
-- **Session**: Server returns `Mcp-Session-Id`; include it in subsequent requests
-- **Response format**: SSE (`text/event-stream`) with JSON data events
+Three client configs are provided — pick the one that matches your client:
 
-Two usage modes are supported:
+| Config file | Best for | Approach | Local deps |
+|-------------|----------|----------|------------|
+| `.mcp.json` | **Cowork Desktop**, Cursor, HTTP-capable clients | `type: "http"` direct | **None** ✅ |
+| `claude-desktop-remote-config.json` | Standard Claude Desktop (Railway) | STDIO bridge | `npx tsx` + repo clone |
+| `claude-desktop-config.json` | Local development | STDIO local | `npx tsx` + repo clone |
 
-1. **Remote (Railway)** — Connect to `https://mcp.bettercallclaude.es` via the MCP HTTP Bridge
-2. **Local** — Clone the repo and run servers directly (required for Claude Desktop without bridge)
+> **For Cowork Desktop users**: use `.mcp.json`. No bridge, no local server, no `npx tsx` needed.
 
 ---
 
-## Claude Desktop (macOS / Windows / Linux)
+## 1. Cowork Desktop / HTTP-capable clients — `.mcp.json` ⭐
 
-Claude Desktop natively supports MCP only via **stdio** (local processes).
+If your client supports `type: "http"` (Cowork Desktop, some Cursor versions, custom integrations), this is the simplest option.
 
-### Option A — Local servers (no internet required)
+Copy `.mcp.json` from the repo root into your client config:
 
-#### 1. Clone and install
+```json
+{
+  "mcpServers": {
+    "boe-legislacion": { "type": "http", "url": "https://mcp.bettercallclaude.es/boe-legislacion/mcp" },
+    "cendoj-jurisprudencia": { "type": "http", "url": "https://mcp.bettercallclaude.es/cendoj-jurisprudencia/mcp" },
+    "tribunal-constitucional": { "type": "http", "url": "https://mcp.bettercallclaude.es/tribunal-constitucional/mcp" },
+    "eu-law-esp": { "type": "http", "url": "https://mcp.bettercallclaude.es/eu-law-esp/mcp" },
+    "congreso-debates": { "type": "http", "url": "https://mcp.bettercallclaude.es/congreso-debates/mcp" },
+    "legal-citations-esp": { "type": "http", "url": "https://mcp.bettercallclaude.es/legal-citations-esp/mcp" },
+    "legal-persona-esp": { "type": "http", "url": "https://mcp.bettercallclaude.es/legal-persona-esp/mcp" },
+    "doctrina-academica": { "type": "http", "url": "https://mcp.bettercallclaude.es/doctrina-academica/mcp" },
+    "derecho-historico": { "type": "http", "url": "https://mcp.bettercallclaude.es/derecho-historico/mcp" },
+    "catalunya-legal": { "type": "http", "url": "https://mcp.bettercallclaude.es/catalunya-legal/mcp" },
+    "busqueda-general": { "type": "http", "url": "https://mcp.bettercallclaude.es/busqueda-general/mcp" }
+  }
+}
+```
+
+**Zero dependencies.** The client connects directly to Railway via HTTP.
+
+---
+
+## 2. Standard Claude Desktop — Local servers
+
+Claude Desktop natively supports MCP only via **stdio** (local processes). Use this if you want to run the servers on your own machine.
+
+### 2.1 Clone and install
 
 ```bash
 git clone https://github.com/fedec65/BetterCallClaudeMCP_Espana.git
@@ -31,9 +56,9 @@ cd BetterCallClaudeMCP_Espana
 npm install
 ```
 
-#### 2. Claude Desktop config
+### 2.2 Config file
 
-Copy this to your Claude Desktop config file:
+Copy to your Claude Desktop config file:
 
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
@@ -92,21 +117,17 @@ Copy this to your Claude Desktop config file:
 
 > **Note**: If `npx tsx` is not available globally, install it first: `npm install -g tsx`
 
-#### 3. Restart Claude Desktop
+### 2.3 Restart Claude Desktop
 
 After saving the config, fully quit and reopen Claude Desktop. You should see the tools available in the chat.
 
 ---
 
-### Option B — Remote via Railway (MCP HTTP Bridge)
+## 3. Standard Claude Desktop — Remote via Railway (bridge)
 
-Use the official MCP HTTP bridge to connect Claude Desktop to the remote deployment:
+If you want to use the Railway deployment from standard Claude Desktop, you need the STDIO bridge because Claude Desktop does not support `type: "http"` natively.
 
-```bash
-npx tsx mcp-servers-http/src/mcp-bridge.ts <server-name>
-```
-
-Example config (see `claude-desktop-remote-config.json` for the full file):
+**Requires**: repo cloned, `npm install` done, `npx tsx` available.
 
 ```json
 {
@@ -126,25 +147,27 @@ Example config (see `claude-desktop-remote-config.json` for the full file):
 }
 ```
 
-The bridge uses `StreamableHTTPClientTransport` (official MCP SDK) to communicate with the remote server and exposes a local stdio interface to Claude Desktop.
+See `claude-desktop-remote-config.json` for the full file with all 11 servers.
 
 ---
 
-## Cursor
+## 4. Cursor
 
-Cursor supports MCP via the same `claude_desktop_config.json` format. Use either the **local** or **bridge** configuration above.
+Cursor supports MCP via the same `claude_desktop_config.json` format. Use the **local** or **bridge** configuration above.
 
 Cursor config location:
 - **macOS**: `~/.cursor/mcp.json`
 - **Windows**: `%USERPROFILE%\.cursor\mcp.json`
 
+> Some Cursor builds also support `type: "http"`. If yours does, use `.mcp.json` instead.
+
 ---
 
-## Generic HTTP Clients
+## 5. Generic HTTP Clients
 
-For clients that support HTTP endpoints directly (custom scripts, LangChain, OpenAI Agents SDK):
+For custom scripts, LangChain, OpenAI Agents SDK, or any client that speaks MCP HTTP directly:
 
-### 1. Initialize handshake
+### 5.1 Initialize handshake
 
 ```bash
 curl -X POST https://mcp.bettercallclaude.es/boe-legislacion/mcp \
@@ -170,7 +193,7 @@ data: {"jsonrpc":"2.0","id":0,"result":{"protocolVersion":"2024-11-05",...}}
 
 Capture the `Mcp-Session-Id` header from the response.
 
-### 2. List tools
+### 5.2 List tools
 
 ```bash
 curl -X POST https://mcp.bettercallclaude.es/boe-legislacion/mcp \
@@ -180,7 +203,7 @@ curl -X POST https://mcp.bettercallclaude.es/boe-legislacion/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-### 3. Call a tool
+### 5.3 Call a tool
 
 ```bash
 curl -X POST https://mcp.bettercallclaude.es/boe-legislacion/mcp \
@@ -198,7 +221,7 @@ curl -X POST https://mcp.bettercallclaude.es/boe-legislacion/mcp \
   }'
 ```
 
-### 4. All endpoints
+### 5.4 All endpoints
 
 | Server | Endpoint |
 |--------|----------|
@@ -217,7 +240,7 @@ curl -X POST https://mcp.bettercallclaude.es/boe-legislacion/mcp \
 
 ---
 
-## Using the Official MCP SDK Client
+## 6. Using the Official MCP SDK Client
 
 ```typescript
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
