@@ -1,19 +1,15 @@
-import express, { Request, Response } from 'express';
+import express, { Application } from 'express';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { logger } from '@bettercallclaude/esp-shared';
+import { randomUUID } from 'crypto';
 
-export interface McpServerRegistration {
+export interface McpServerFactory {
   name: string;
-  handler: (req: Request, res: Response) => void | Promise<void>;
+  createServer: () => Server;
 }
 
-const servers: McpServerRegistration[] = [];
-
-export function registerMcpServer(server: McpServerRegistration): void {
-  servers.push(server);
-  logger.info({ server: server.name }, 'Registered MCP server');
-}
-
-export function createApp(): express.Application {
+export async function createApp(servers: McpServerFactory[]): Promise<Application> {
   const app = express();
   app.use(express.json());
 
@@ -26,9 +22,36 @@ export function createApp(): express.Application {
     });
   });
 
-  for (const server of servers) {
-    app.post(`/${server.name}/mcp`, server.handler);
-    logger.info({ endpoint: `/${server.name}/mcp` }, 'Mounted MCP endpoint');
+  for (const { name, createServer } of servers) {
+    const server = createServer();
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+    });
+    await server.connect(transport);
+
+    app.post(`/${name}/mcp`, async (req, res) => {
+      try {
+        await transport.handleRequest(req, res, req.body);
+      } catch (err) {
+        logger.error({ err, server: name }, 'MCP transport error');
+        if (!res.headersSent) {
+          res.status(500).json({ error: String(err) });
+        }
+      }
+    });
+
+    app.get(`/${name}/mcp`, async (req, res) => {
+      try {
+        await transport.handleRequest(req, res, undefined);
+      } catch (err) {
+        logger.error({ err, server: name }, 'MCP transport error');
+        if (!res.headersSent) {
+          res.status(500).json({ error: String(err) });
+        }
+      }
+    });
+
+    logger.info({ endpoint: `/${name}/mcp` }, 'Mounted MCP endpoint');
   }
 
   return app;
