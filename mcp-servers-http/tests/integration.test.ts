@@ -65,7 +65,6 @@ async function mcpRequest(
 
 describe('MCP HTTP Server', () => {
   let app: Application;
-  const sessions: Record<string, string> = {};
 
   beforeAll(async () => {
     app = await createApp([
@@ -73,24 +72,6 @@ describe('MCP HTTP Server', () => {
       { name: 'legal-citations', createServer: createCitationsServer },
       { name: 'busqueda-general', createServer: createBusquedaServer },
     ]);
-
-    // Initialize all servers and capture session IDs
-    for (const name of ['boe-legislacion', 'legal-citations', 'busqueda-general']) {
-      const { response, sessionId } = await mcpRequest(app, `/${name}/mcp`, {
-        jsonrpc: '2.0',
-        id: 0,
-        method: 'initialize',
-        params: {
-          protocolVersion: '2024-11-05',
-          capabilities: {},
-          clientInfo: { name: 'test', version: '1.0' },
-        },
-      });
-      expect(response.result).toBeDefined();
-      expect(response.result.protocolVersion).toBe('2024-11-05');
-      expect(sessionId).toBeDefined();
-      sessions[name] = sessionId!;
-    }
   });
 
   it('health endpoint returns ok', async () => {
@@ -100,20 +81,45 @@ describe('MCP HTTP Server', () => {
     expect(res.body.servers).toBe(3);
   });
 
-  it('boe-legislacion: list tools', async () => {
-    const { response } = await mcpRequest(app, '/boe-legislacion/mcp', {
+  it('boe-legislacion: initialize + list tools', async () => {
+    const { response, sessionId } = await mcpRequest(app, '/boe-legislacion/mcp', {
+      jsonrpc: '2.0',
+      id: 0,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'test', version: '1.0' },
+      },
+    });
+    expect(response.result).toBeDefined();
+    expect(response.result.protocolVersion).toBe('2024-11-05');
+    expect(sessionId).toBeDefined();
+
+    const { response: listRes } = await mcpRequest(app, '/boe-legislacion/mcp', {
       jsonrpc: '2.0',
       id: 1,
       method: 'tools/list',
-    }, sessions['boe-legislacion']);
-    expect(response.result).toBeDefined();
-    const tools = response.result.tools;
+    }, sessionId);
+    expect(listRes.result).toBeDefined();
+    const tools = listRes.result.tools;
     expect(Array.isArray(tools)).toBe(true);
     expect(tools.length).toBeGreaterThan(0);
     expect(tools.map((t: any) => t.name)).toContain('search_boe');
   });
 
   it('boe-legislacion: call search_boe tool', async () => {
+    const { sessionId } = await mcpRequest(app, '/boe-legislacion/mcp', {
+      jsonrpc: '2.0',
+      id: 0,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'test', version: '1.0' },
+      },
+    });
+
     const { response } = await mcpRequest(app, '/boe-legislacion/mcp', {
       jsonrpc: '2.0',
       id: 2,
@@ -122,33 +128,57 @@ describe('MCP HTTP Server', () => {
         name: 'search_boe',
         arguments: { query: 'constitucion', limit: 1 },
       },
-    }, sessions['boe-legislacion']);
+    }, sessionId);
     expect(response.result).toBeDefined();
     expect(response.result.content).toBeDefined();
     expect(Array.isArray(response.result.content)).toBe(true);
   });
 
-  it('legal-citations: list tools', async () => {
-    const { response } = await mcpRequest(app, '/legal-citations/mcp', {
+  it('legal-citations: initialize + list tools', async () => {
+    const { response, sessionId } = await mcpRequest(app, '/legal-citations/mcp', {
+      jsonrpc: '2.0',
+      id: 0,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'test', version: '1.0' },
+      },
+    });
+    expect(sessionId).toBeDefined();
+
+    const { response: listRes } = await mcpRequest(app, '/legal-citations/mcp', {
       jsonrpc: '2.0',
       id: 1,
       method: 'tools/list',
-    }, sessions['legal-citations']);
-    expect(response.result).toBeDefined();
-    const tools = response.result.tools;
+    }, sessionId);
+    expect(listRes.result).toBeDefined();
+    const tools = listRes.result.tools;
     expect(Array.isArray(tools)).toBe(true);
     expect(tools.length).toBeGreaterThan(0);
     expect(tools.map((t: any) => t.name)).toContain('validate_citation');
   });
 
-  it('busqueda-general: list tools', async () => {
-    const { response } = await mcpRequest(app, '/busqueda-general/mcp', {
+  it('busqueda-general: initialize + list tools', async () => {
+    const { response, sessionId } = await mcpRequest(app, '/busqueda-general/mcp', {
+      jsonrpc: '2.0',
+      id: 0,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'test', version: '1.0' },
+      },
+    });
+    expect(sessionId).toBeDefined();
+
+    const { response: listRes } = await mcpRequest(app, '/busqueda-general/mcp', {
       jsonrpc: '2.0',
       id: 1,
       method: 'tools/list',
-    }, sessions['busqueda-general']);
-    expect(response.result).toBeDefined();
-    const tools = response.result.tools;
+    }, sessionId);
+    expect(listRes.result).toBeDefined();
+    const tools = listRes.result.tools;
     expect(Array.isArray(tools)).toBe(true);
     expect(tools.length).toBeGreaterThan(0);
     expect(tools.map((t: any) => t.name)).toContain('search_portico');
@@ -157,5 +187,44 @@ describe('MCP HTTP Server', () => {
   it('404 for unknown server', async () => {
     const res = await request(app).post('/unknown/mcp');
     expect(res.status).toBe(404);
+  });
+
+  it('multiple clients can initialize independently', async () => {
+    const { sessionId: sid1 } = await mcpRequest(app, '/boe-legislacion/mcp', {
+      jsonrpc: '2.0',
+      id: 0,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'client-1', version: '1.0' },
+      },
+    });
+
+    const { sessionId: sid2 } = await mcpRequest(app, '/boe-legislacion/mcp', {
+      jsonrpc: '2.0',
+      id: 0,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'client-2', version: '1.0' },
+      },
+    });
+
+    expect(sid1).toBeDefined();
+    expect(sid2).toBeDefined();
+    expect(sid1).not.toBe(sid2);
+
+    // Both clients can list tools
+    const { response: r1 } = await mcpRequest(app, '/boe-legislacion/mcp', {
+      jsonrpc: '2.0', id: 1, method: 'tools/list',
+    }, sid1);
+    expect(r1.result.tools.length).toBeGreaterThan(0);
+
+    const { response: r2 } = await mcpRequest(app, '/boe-legislacion/mcp', {
+      jsonrpc: '2.0', id: 1, method: 'tools/list',
+    }, sid2);
+    expect(r2.result.tools.length).toBeGreaterThan(0);
   });
 });
