@@ -2,47 +2,52 @@
   "mcpServers": {
     "boe-legislacion": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/boe-legislacion/src/server.ts"]
+      "args": ["tsx", "mcp-servers/boe-legislacion/src/stdio.ts"]
     },
     "legal-citations-esp": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/legal-citations-esp/src/server.ts"]
+      "args": ["tsx", "mcp-servers/legal-citations-esp/src/stdio.ts"]
     },
     "legal-persona-esp": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/legal-persona-esp/src/server.ts"]
+      "args": ["tsx", "mcp-servers/legal-persona-esp/src/stdio.ts"]
     },
     "cendoj-jurisprudencia": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/cendoj-jurisprudencia/src/server.ts"]
+      "args": ["tsx", "mcp-servers/cendoj-jurisprudencia/src/stdio.ts"]
     },
     "tribunal-constitucional": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/tribunal-constitucional/src/server.ts"]
+      "args": ["tsx", "mcp-servers/tribunal-constitucional/src/stdio.ts"]
     },
     "eu-law-esp": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/eu-law-esp/src/server.ts"]
+      "args": ["tsx", "mcp-servers/eu-law-esp/src/stdio.ts"]
     },
     "congreso-debates": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/congreso-debates/src/server.ts"]
+      "args": ["tsx", "mcp-servers/congreso-debates/src/stdio.ts"]
     },
     "doctrina-academica": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/doctrina-academica/src/server.ts"]
+      "args": ["tsx", "mcp-servers/doctrina-academica/src/stdio.ts"]
     },
     "derecho-historico": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/derecho-historico/src/server.ts"]
+      "args": ["tsx", "mcp-servers/derecho-historico/src/stdio.ts"]
     },
     "catalunya-legal": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/catalunya-legal/src/server.ts"]
+      "args": ["tsx", "mcp-servers/catalunya-legal/src/stdio.ts"]
     },
     "busqueda-general": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/busqueda-general/src/server.ts"]
+      "args": ["tsx", "mcp-servers/busqueda-general/src/stdio.ts"]
+    },
+    "workflows-esp": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/workflows/src/stdio.ts"],
+      "env": { "WORKFLOWS_STORE": "sqlite" }
     }
   }
 }

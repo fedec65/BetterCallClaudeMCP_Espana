@@ -17,7 +17,7 @@ import {
 } from './errors.js';
 
 const SERVER_NAME = 'bettercallclaude-esp-workflows';
-const SERVER_VERSION = '0.1.0';
+const SERVER_VERSION = '0.2.0';
 
 /**
  * Tool descriptors advertised by the server. Input schemas mirror the zod
@@ -44,7 +44,7 @@ const TOOL_DESCRIPTORS: Tool[] = [
   {
     name: 'list_agents',
     description:
-      'Return the chainable plugin agents (from agents_manifest). Used to drive the /crear-workflow interview.',
+      'Return the chainable plugin agents (from agents_manifest). Used to drive the /create-workflow interview.',
     inputSchema: { type: 'object', properties: {} },
     annotations: { readOnlyHint: true, destructiveHint: false },
   },
@@ -77,7 +77,7 @@ const TOOL_DESCRIPTORS: Tool[] = [
   {
     name: 'save_workflow',
     description:
-      'Upsert a workflow keyed by (user_id, slug). Re-validates server-side; enforces 50-active quota per user; bumps version. (Stub in t33 scaffold; pending t34 / #35.)',
+      'Upsert a workflow keyed by (user_id, slug). Re-validates server-side; enforces 50-active quota per user; bumps version on update.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -96,7 +96,7 @@ const TOOL_DESCRIPTORS: Tool[] = [
   {
     name: 'list_workflows',
     description:
-      'List workflows visible to caller (own + optionally team + public). (Stub in t33 scaffold; pending t34 / #35.)',
+      'List workflows visible to caller (own + optionally team + public).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -111,7 +111,7 @@ const TOOL_DESCRIPTORS: Tool[] = [
   {
     name: 'get_workflow',
     description:
-      'Fetch one workflow by slug with owner-or-visible check. (Stub in t33 scaffold; pending t34 / #35.)',
+      'Fetch one workflow by slug with owner-or-visible check.',
     inputSchema: {
       type: 'object',
       properties: { user_id: { type: 'string' }, slug: { type: 'string' } },
@@ -122,7 +122,7 @@ const TOOL_DESCRIPTORS: Tool[] = [
   {
     name: 'delete_workflow',
     description:
-      'Delete one of the caller\'s own workflows (owner-only). (Stub in t33 scaffold; pending t34 / #35.)',
+      "Delete one of the caller's own workflows (owner-only).",
     inputSchema: {
       type: 'object',
       properties: { user_id: { type: 'string' }, slug: { type: 'string' } },
@@ -133,7 +133,7 @@ const TOOL_DESCRIPTORS: Tool[] = [
   {
     name: 'log_run',
     description:
-      'Append an audit row to workflow_runs. completed_at is set automatically unless status="running". (Stub in t33 scaffold; pending t34 / #35.)',
+      'Append an audit row to workflow_runs. completed_at is set automatically unless status="running".',
     inputSchema: {
       type: 'object',
       properties: {
@@ -149,7 +149,7 @@ const TOOL_DESCRIPTORS: Tool[] = [
   {
     name: 'delete_user',
     description:
-      'LOPDGDD §17 cascade-delete: drop user, all their workflows, and their claimed_id; mark pre-existing runs status="abandoned" for audit. (Stub in t33 scaffold; pending t34 / #35.)',
+      'LOPDGDD §17 cascade-delete: drop user, all their workflows, and their claimed_id; mark pre-existing runs status="abandoned" for audit.',
     inputSchema: {
       type: 'object',
       properties: { user_id: { type: 'string' } },

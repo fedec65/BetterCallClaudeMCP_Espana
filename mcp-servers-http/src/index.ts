@@ -11,6 +11,7 @@ import { createDoctrinaServer } from '@bettercallclaude/esp-doctrina-academica';
 import { createHistoricoServer } from '@bettercallclaude/esp-derecho-historico';
 import { createCatalunyaServer } from '@bettercallclaude/esp-catalunya-legal';
 import { createBusquedaServer } from '@bettercallclaude/esp-busqueda-general';
+import { createWorkflowsServer, resolveStore } from '@bettercallclaude/esp-workflows';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
@@ -29,7 +30,11 @@ const servers = [
 ];
 
 async function main() {
-  const app = await createApp(servers);
+  const workflowStore = await resolveStore();
+  const app = await createApp([
+    ...servers,
+    { name: 'workflows-esp', createServer: () => createWorkflowsServer({ store: workflowStore }) },
+  ]);
 
   app.listen(PORT, () => {
     logger.info({ port: PORT }, 'BetterCallClaude España MCP HTTP aggregator started');

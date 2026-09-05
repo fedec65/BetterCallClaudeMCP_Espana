@@ -148,3 +148,23 @@ Sources: Portico Legal, Findiur
 | `search_portico` | Search Portico Legal |
 | `search_findiur` | Search Findiur (AI-powered) |
 | `search_multi_source` | Search across both sources |
+
+---
+
+## workflows-esp
+
+Persistent workflow orchestration store backing the plugin `/create-workflow` command and agent-chain FLUJOS. Schema follows ADR 0001 (`agents_manifest`, `workflows`, `workflow_runs`, `claimed_ids`); see `mcp-servers/workflows/migrations/0001_init.sql` for the canonical DDL.
+
+Storage provider is selected by env at process start (`WORKFLOWS_STORE` = `memory` | `sqlite` | `postgres`; defaults to `postgres` when `DATABASE_URL` is set, otherwise `memory`). Production runs on Postgres (Railway); SQLite is the dev-only local provider.
+
+| Tool | Description |
+|------|-------------|
+| `claim_user_id` | Reserve a `user_id` in `claimed_ids` (idempotent — `claimed: false` if already taken). Client resolves `user_id` via a 4-fallback chain before calling this. |
+| `list_agents` | Return the chainable plugin agents (from `agents_manifest`). Drives the `/create-workflow` interview. |
+| `validate_pipeline` | Stateless pipeline check against the agent manifest → `{valid, errors[]}`. Does not persist. |
+| `save_workflow` | Upsert a workflow keyed by `(user_id, slug)`. Server-side re-validation; 50-active quota per user; bumps `version` on update. |
+| `list_workflows` | List workflows visible to the caller (own + optional `team`/`public`). |
+| `get_workflow` | Fetch one workflow by slug (owner-or-visible check). |
+| `delete_workflow` | Delete one of the caller's own workflows (owner-only). |
+| `log_run` | Append an audit row to `workflow_runs`; `completed_at` is set automatically unless `status="running"`. |
+| `delete_user` | LOPDGDD §17 cascade delete: user, their workflows, their `claimed_id`; pre-existing runs are marked `abandoned` for audit. |

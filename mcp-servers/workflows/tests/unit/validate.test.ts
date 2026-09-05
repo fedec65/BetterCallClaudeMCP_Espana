@@ -81,13 +81,17 @@ describe('validatePipeline', () => {
   });
 
   it('uses AGENTS_MANIFEST by default', () => {
-    // AGENTS_MANIFEST (stub) has legal-intake and legal-chronology with chaining overlap.
+    // Real chain from the seeded manifest: briefing-coordinator (out: brief)
+    // -> legal-researcher (in: brief; out: research_findings)
+    // -> legal-drafter (in: research_findings).
     const pipeline: Pipeline = [
-      { step: 1, agent_id: 'legal-intake', purpose: 'a' },
-      { step: 2, agent_id: 'legal-chronology', purpose: 'b' },
+      { step: 1, agent_id: 'spanish-briefing-coordinator', purpose: 'assemble brief' },
+      { step: 2, agent_id: 'spanish-legal-researcher', purpose: 'research the brief' },
+      { step: 3, agent_id: 'spanish-legal-drafter', purpose: 'draft submission' },
     ];
     const result = validatePipeline(pipeline);
     expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
   });
 
   it('accumulates multiple error types in one pass', () => {
@@ -102,13 +106,18 @@ describe('validatePipeline', () => {
     expect(codes).toContain('unknown_agent');
   });
 
-  it('AGENTS_MANIFEST has at least 2 stub agents (list_agents contract)', () => {
-    expect(AGENTS_MANIFEST.length).toBeGreaterThanOrEqual(2);
+  it('AGENTS_MANIFEST seeds the 21 real plugin agents with unique ids (list_agents contract)', () => {
+    expect(AGENTS_MANIFEST.length).toBeGreaterThanOrEqual(21);
+    const ids = AGENTS_MANIFEST.map((a) => a.agent_id);
+    expect(new Set(ids).size).toBe(ids.length); // no duplicates
     for (const a of AGENTS_MANIFEST) {
-      expect(a.agent_id).toBeTruthy();
+      expect(a.agent_id).toMatch(/^[a-z][a-z0-9-]*$/);
       expect(a.display_name).toBeTruthy();
       expect(Array.isArray(a.input_types)).toBe(true);
+      expect(a.input_types.length).toBeGreaterThan(0);
       expect(Array.isArray(a.output_types)).toBe(true);
+      expect(a.output_types.length).toBeGreaterThan(0);
+      expect(Array.isArray(a.mcp_servers)).toBe(true);
     }
   });
 });

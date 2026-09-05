@@ -3,10 +3,11 @@ import type {
   AgentManifestEntry,
   Pipeline,
   PipelineStep,
+  WorkflowRow,
 } from './types.js';
 import { AGENTS_MANIFEST } from './types.js';
 import { validatePipeline } from './validate.js';
-import { ToolNotImplementedError } from './errors.js';
+import { WorkflowQuotaError, WorkflowValidationError } from './errors.js';
 import { SCHEMA_SQL } from './sql.js';
 import { logger } from '@bettercallclaude/esp-shared';
 import type {
@@ -17,7 +18,6 @@ import type {
   LogRunResult,
   SaveWorkflowInput,
   SaveWorkflowResult,
-  WorkflowRow,
   WorkflowStore,
 } from './store.js';
 
@@ -27,18 +27,59 @@ interface PostgresOptions {
   ssl?: { rejectUnauthorized: boolean } | false; // auto by default
 }
 
+/** Per-user cap on non-archived workflows (ADR §5(a)). */
+const ACTIVE_QUOTA = 50;
+
+interface WorkflowRowSql {
+  id: string;
+  user_id: string;
+  slug: string;
+  name: string;
+  description: string;
+  pipeline: unknown;
+  output_spec: string;
+  visibility: string;
+  status: string;
+  version: number;
+  created_at: Date | string;
+  updated_at: Date | string;
+}
+
+function iso(v: Date | string): string {
+  return v instanceof Date ? v.toISOString() : v;
+}
+
+function mapWorkflowRow(row: WorkflowRowSql): WorkflowRow {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    slug: row.slug,
+    name: row.name,
+    description: row.description,
+    pipeline: row.pipeline as PipelineStep[],
+    output_spec: row.output_spec,
+    visibility: row.visibility as WorkflowRow['visibility'],
+    status: row.status as WorkflowRow['status'],
+    version: row.version,
+    created_at: iso(row.created_at),
+    updated_at: iso(row.updated_at),
+  };
+}
+
 /**
  * Postgres-backed implementation of `WorkflowStore`.
  *
- * **Scope of t33 scaffold**:
+ * **Scope of t34 / #35 integration** (extends the t33 scaffold):
  * - `init()` runs `SCHEMA_SQL` idempotently (memoized per process) and seeds
  *   `AGENTS_MANIFEST` with `ON CONFLICT (agent_id) DO UPDATE`.
- * - `claimUserId`, `listAgents`, `validatePipeline` are implemented.
- * - All other methods throw `ToolNotImplementedError` (pending t34 / #35).
+ * - All nine store methods are implemented (see ADR 0001).
  *
  * SSL behavior (per ADR §2):
  *   - For managed Postgres (Railway): `{ rejectUnauthorized: false }`.
  *   - For localhost / 127.0.0.1 / [::1] / explicit `sslmode=`: SSL disabled.
+ *
+ * The store is a **process singleton**: the HTTP aggregator creates one MCP
+ * `Server` per session, so the pool must not be created per session.
  */
 export class PostgresWorkflowStore implements WorkflowStore {
   private readonly pool: Pool;
@@ -106,8 +147,6 @@ export class PostgresWorkflowStore implements WorkflowStore {
     await this.pool.end();
   }
 
-  // ---------------- implemented in scaffold ----------------
-
   async claimUserId(user_id: string): Promise<ClaimUserIdResult> {
     await this.init();
     const client: PoolClient = await this.pool.connect();
@@ -157,31 +196,189 @@ export class PostgresWorkflowStore implements WorkflowStore {
     return validatePipeline(pipeline as Pipeline);
   }
 
-  // ---------------- stubs (out of scope for t33) ----------------
-  async saveWorkflow(_input: SaveWorkflowInput): Promise<SaveWorkflowResult> {
-    throw new ToolNotImplementedError(
-      'save_workflow',
-      'Pending t34 / #35. Will enforce 50-active quota + upsert keyed on (user_id, slug) + re-validate before write.',
-    );
+  async saveWorkflow(input: SaveWorkflowInput): Promise<SaveWorkflowResult> {
+    await this.init();
+    const validation = validatePipeline(input.pipeline as Pipeline);
+    if (!validation.valid) throw new WorkflowValidationError(validation.errors);
+
+    const client = await this.pool.connect();
+    try {
+      const visibility = input.visibility ?? 'private';
+      const params = [
+        input.user_id,
+        input.slug,
+        input.name,
+        input.description,
+        JSON.stringify(input.pipeline),
+        input.output_spec,
+        visibility,
+      ];
+
+      const updated = await client.query<WorkflowRowSql>(
+        `UPDATE workflows SET
+           name = $3, description = $4, pipeline = $5::jsonb, output_spec = $6,
+           visibility = $7, status = 'active', version = version + 1, updated_at = now()
+         WHERE user_id = $1 AND slug = $2
+         RETURNING *`,
+        params,
+      );
+      if (updated.rows.length === 1) {
+        return { saved: true, workflow: mapWorkflowRow(updated.rows[0]) };
+      }
+
+      // New workflow: enforce the 50 non-archived workflows/user quota first.
+      const { rows: quotaRows } = await client.query<{ count: string }>(
+        `SELECT count(*)::text AS count FROM workflows WHERE user_id = $1 AND status <> 'archived'`,
+        [input.user_id],
+      );
+      const active = Number(quotaRows[0]?.count ?? 0);
+      if (active >= ACTIVE_QUOTA) throw new WorkflowQuotaError(ACTIVE_QUOTA, active);
+
+      const inserted = await client.query<WorkflowRowSql>(
+        `INSERT INTO workflows (user_id, slug, name, description, pipeline, output_spec, visibility)
+         VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)
+         RETURNING *`,
+        params,
+      );
+      return { saved: true, workflow: mapWorkflowRow(inserted.rows[0]) };
+    } finally {
+      client.release();
+    }
   }
 
-  async listWorkflows(_options: ListWorkflowsOptions): Promise<WorkflowRow[]> {
-    throw new ToolNotImplementedError('list_workflows', 'Pending t34 / #35.');
+  async listWorkflows(options: ListWorkflowsOptions): Promise<WorkflowRow[]> {
+    await this.init();
+    const client = await this.pool.connect();
+    try {
+      const { rows } = await client.query<WorkflowRowSql>(
+        `SELECT * FROM workflows
+         WHERE user_id = $1
+            OR ($2::boolean AND visibility = 'team')
+            OR ($3::boolean AND visibility = 'public')
+         ORDER BY updated_at DESC`,
+        [options.user_id, options.include_team === true, options.include_public === true],
+      );
+      return rows.map(mapWorkflowRow);
+    } finally {
+      client.release();
+    }
   }
 
-  async getWorkflow(_user_id: string, _slug: string): Promise<WorkflowRow | null> {
-    throw new ToolNotImplementedError('get_workflow', 'Pending t34 / #35.');
+  async getWorkflow(user_id: string, slug: string): Promise<WorkflowRow | null> {
+    await this.init();
+    const client = await this.pool.connect();
+    try {
+      const { rows } = await client.query<WorkflowRowSql>(
+        `SELECT * FROM workflows
+         WHERE (user_id = $1 AND slug = $2) OR (slug = $2 AND visibility = 'public')
+         ORDER BY (user_id = $1) DESC
+         LIMIT 1`,
+        [user_id, slug],
+      );
+      return rows.length === 1 ? mapWorkflowRow(rows[0]) : null;
+    } finally {
+      client.release();
+    }
   }
 
-  async deleteWorkflow(_user_id: string, _slug: string): Promise<DeleteWorkflowResult> {
-    throw new ToolNotImplementedError('delete_workflow', 'Pending t34 / #35.');
+  async deleteWorkflow(user_id: string, slug: string): Promise<DeleteWorkflowResult> {
+    await this.init();
+    const client = await this.pool.connect();
+    try {
+      // workflow_runs rows cascade via the ON DELETE CASCADE FK.
+      const { rowCount } = await client.query(
+        `DELETE FROM workflows WHERE user_id = $1 AND slug = $2`,
+        [user_id, slug],
+      );
+      return { deleted: (rowCount ?? 0) > 0 };
+    } finally {
+      client.release();
+    }
   }
 
-  async logRun(_input: LogRunInput): Promise<LogRunResult> {
-    throw new ToolNotImplementedError('log_run', 'Pending t34 / #35.');
+  async logRun(input: LogRunInput): Promise<LogRunResult> {
+    await this.init();
+    const client = await this.pool.connect();
+    try {
+      if (input.status === 'running') {
+        const { rows } = await client.query<{ id: string }>(
+          `INSERT INTO workflow_runs (workflow_id, user_id, status) VALUES ($1, $2, 'running')
+           RETURNING id`,
+          [input.workflow_id, input.user_id],
+        );
+        return { run_id: rows[0].id };
+      }
+
+      // Terminal status: close the caller's open running row when one exists.
+      const closed = await client.query<{ id: string }>(
+        `UPDATE workflow_runs SET
+           status = $3, completed_at = now(),
+           output_summary = COALESCE($4, output_summary)
+         WHERE workflow_id = $1 AND user_id = $2 AND status = 'running' AND completed_at IS NULL
+         RETURNING id`,
+        [input.workflow_id, input.user_id, input.status, input.output_summary ?? null],
+      );
+      if (closed.rows.length === 1) return { run_id: closed.rows[0].id };
+
+      try {
+        const { rows } = await client.query<{ id: string }>(
+          `INSERT INTO workflow_runs (workflow_id, user_id, status, completed_at, output_summary)
+           VALUES ($1, $2, $3, now(), $4)
+           RETURNING id`,
+          [input.workflow_id, input.user_id, input.status, input.output_summary ?? null],
+        );
+        return { run_id: rows[0].id };
+      } catch (err) {
+        if (isForeignKeyViolation(err)) {
+          throw new Error(`workflow ${input.workflow_id} does not exist (log_run)`);
+        }
+        throw err;
+      }
+    } finally {
+      client.release();
+    }
   }
 
-  async deleteUser(_user_id: string): Promise<{ deleted: boolean; workflows_cascade: number; runs_abandoned: number }> {
-    throw new ToolNotImplementedError('delete_user', 'Pending t34 / #35. LOPDGDD §17 cascade semantics.');
+  async deleteUser(user_id: string): Promise<{ deleted: boolean; workflows_cascade: number; runs_abandoned: number }> {
+    await this.init();
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      try {
+        const abandoned = await client.query(
+          `UPDATE workflow_runs SET status = 'abandoned', completed_at = COALESCE(completed_at, now())
+           WHERE user_id = $1 AND status = 'running'`,
+          [user_id],
+        );
+        const cascaded = await client.query(
+          `DELETE FROM workflows WHERE user_id = $1`,
+          [user_id],
+        );
+        const claimed = await client.query(
+          `DELETE FROM claimed_ids WHERE user_id = $1`,
+          [user_id],
+        );
+        await client.query('COMMIT');
+
+        const workflows_cascade = cascaded.rowCount ?? 0;
+        const runs_abandoned = abandoned.rowCount ?? 0;
+        const deleted = workflows_cascade > 0 || runs_abandoned > 0 || (claimed.rowCount ?? 0) > 0;
+        return { deleted, workflows_cascade, runs_abandoned };
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      }
+    } finally {
+      client.release();
+    }
   }
+}
+
+function isForeignKeyViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: unknown }).code === '23503'
+  );
 }
