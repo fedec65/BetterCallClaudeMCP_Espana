@@ -17,6 +17,7 @@ COPY mcp-servers/doctrina-academica/package*.json mcp-servers/doctrina-academica
 COPY mcp-servers/derecho-historico/package*.json mcp-servers/derecho-historico/
 COPY mcp-servers/catalunya-legal/package*.json mcp-servers/catalunya-legal/
 COPY mcp-servers/busqueda-general/package*.json mcp-servers/busqueda-general/
+COPY mcp-servers/workflows/package*.json mcp-servers/workflows/
 COPY mcp-servers-http/package*.json mcp-servers-http/
 
 RUN npm ci
@@ -34,6 +35,7 @@ COPY mcp-servers/doctrina-academica/tsconfig.json mcp-servers/doctrina-academica
 COPY mcp-servers/derecho-historico/tsconfig.json mcp-servers/derecho-historico/
 COPY mcp-servers/catalunya-legal/tsconfig.json mcp-servers/catalunya-legal/
 COPY mcp-servers/busqueda-general/tsconfig.json mcp-servers/busqueda-general/
+COPY mcp-servers/workflows/tsconfig.json mcp-servers/workflows/
 COPY mcp-servers-http/tsconfig.json mcp-servers-http/
 
 # Copy source code
@@ -49,6 +51,7 @@ COPY mcp-servers/doctrina-academica/src mcp-servers/doctrina-academica/src
 COPY mcp-servers/derecho-historico/src mcp-servers/derecho-historico/src
 COPY mcp-servers/catalunya-legal/src mcp-servers/catalunya-legal/src
 COPY mcp-servers/busqueda-general/src mcp-servers/busqueda-general/src
+COPY mcp-servers/workflows/src mcp-servers/workflows/src
 COPY mcp-servers-http/src mcp-servers-http/src
 
 # Build shared first (other workspaces depend on it)
@@ -72,6 +75,7 @@ COPY --from=builder /app/mcp-servers/doctrina-academica/dist mcp-servers/doctrin
 COPY --from=builder /app/mcp-servers/derecho-historico/dist mcp-servers/derecho-historico/dist
 COPY --from=builder /app/mcp-servers/catalunya-legal/dist mcp-servers/catalunya-legal/dist
 COPY --from=builder /app/mcp-servers/busqueda-general/dist mcp-servers/busqueda-general/dist
+COPY --from=builder /app/mcp-servers/workflows/dist mcp-servers/workflows/dist
 COPY --from=builder /app/mcp-servers-http/dist mcp-servers-http/dist
 COPY --from=builder /app/node_modules node_modules
 COPY --from=builder /app/package*.json ./
@@ -87,6 +91,7 @@ COPY --from=builder /app/mcp-servers/doctrina-academica/package*.json mcp-server
 COPY --from=builder /app/mcp-servers/derecho-historico/package*.json mcp-servers/derecho-historico/
 COPY --from=builder /app/mcp-servers/catalunya-legal/package*.json mcp-servers/catalunya-legal/
 COPY --from=builder /app/mcp-servers/busqueda-general/package*.json mcp-servers/busqueda-general/
+COPY --from=builder /app/mcp-servers/workflows/package*.json mcp-servers/workflows/
 COPY --from=builder /app/mcp-servers-http/package*.json mcp-servers-http/
 
 EXPOSE 3000

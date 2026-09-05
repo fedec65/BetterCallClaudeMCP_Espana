@@ -5,6 +5,10 @@ import { createApp } from '../src/app.js';
 import { createBoeServer } from '@bettercallclaude/esp-boe-legislacion';
 import { createCitationsServer } from '@bettercallclaude/esp-legal-citations';
 import { createBusquedaServer } from '@bettercallclaude/esp-busqueda-general';
+import {
+  createWorkflowsServer,
+  InMemoryWorkflowStore,
+} from '@bettercallclaude/esp-workflows';
 
 function parseSse(body: string): any[] {
   const events: any[] = [];
@@ -65,12 +69,17 @@ async function mcpRequest(
 
 describe('MCP HTTP Server', () => {
   let app: Application;
+  const workflowStore = new InMemoryWorkflowStore();
 
   beforeAll(async () => {
     app = await createApp([
       { name: 'boe-legislacion', createServer: createBoeServer },
       { name: 'legal-citations', createServer: createCitationsServer },
       { name: 'busqueda-general', createServer: createBusquedaServer },
+      {
+        name: 'workflows-esp',
+        createServer: () => createWorkflowsServer({ store: workflowStore }),
+      },
     ]);
   });
 
@@ -78,7 +87,8 @@ describe('MCP HTTP Server', () => {
     const res = await request(app).get('/health');
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
-    expect(res.body.servers).toBe(3);
+    expect(res.body.servers).toBe(4);
+    expect(res.body.serverNames).toContain('workflows-esp');
   });
 
   it('boe-legislacion: initialize + list tools', async () => {
@@ -226,5 +236,81 @@ describe('MCP HTTP Server', () => {
       jsonrpc: '2.0', id: 1, method: 'tools/list',
     }, sid2);
     expect(r2.result.tools.length).toBeGreaterThan(0);
+  });
+
+  it('workflows-esp: initialize + list 9 tools', async () => {
+    const { response, sessionId } = await mcpRequest(app, '/workflows-esp/mcp', {
+      jsonrpc: '2.0',
+      id: 0,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'test', version: '1.0' },
+      },
+    });
+    expect(response.result).toBeDefined();
+    expect(response.result.protocolVersion).toBe('2024-11-05');
+    expect(sessionId).toBeDefined();
+
+    const { response: listRes } = await mcpRequest(app, '/workflows-esp/mcp', {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/list',
+    }, sessionId);
+    expect(listRes.result).toBeDefined();
+    const tools = listRes.result.tools;
+    expect(Array.isArray(tools)).toBe(true);
+    const names = tools.map((t: any) => t.name).sort();
+    expect(names).toEqual(
+      [
+        'claim_user_id',
+        'delete_user',
+        'delete_workflow',
+        'get_workflow',
+        'list_agents',
+        'list_workflows',
+        'log_run',
+        'save_workflow',
+        'validate_pipeline',
+      ].sort(),
+    );
+  });
+
+  it('workflows-esp: claim_user_id idempotent across sessions (shared store)', async () => {
+    const claim = async (user_id: string) => {
+      const { sessionId } = await mcpRequest(app, '/workflows-esp/mcp', {
+        jsonrpc: '2.0',
+        id: 0,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: { name: 'test', version: '1.0' },
+        },
+      });
+      expect(sessionId).toBeDefined();
+
+      const { response } = await mcpRequest(app, '/workflows-esp/mcp', {
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tools/call',
+        params: { name: 'claim_user_id', arguments: { user_id } },
+      }, sessionId);
+      expect(response.result).toBeDefined();
+      expect(response.result.isError).toBeUndefined();
+      return JSON.parse(response.result.content[0].text);
+    };
+
+    // First session claims the id; a second, independent session on the same
+    // store observes it as already taken (mirrors sqlite/postgres persistence).
+    await expect(claim('http-e2e-user')).resolves.toEqual({
+      claimed: true,
+      user_id: 'http-e2e-user',
+    });
+    await expect(claim('http-e2e-user')).resolves.toEqual({
+      claimed: false,
+      user_id: 'http-e2e-user',
+    });
   });
 });

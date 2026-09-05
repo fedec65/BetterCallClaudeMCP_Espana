@@ -96,25 +96,183 @@ export interface AgentManifestEntry {
 }
 
 /**
- * AGENTS_MANIFEST — seed of chainable ESP plugin agents.
- * TODO(t34 / #35 integration): curate from `bettercallclaude-espana/agents/*.md`.
- * Current stub: 2 placeholder agents so list_agents returns something usable for tests.
+ * AGENTS_MANIFEST — seed of the 21 chainable ESP plugin agents, curated from
+ * `bettercallclaude-espana/agents/*.md` (Map D t34 / #35):
+ * - `agent_id` = frontmatter `name:` of the plugin agent file.
+ * - `input_types` / `output_types` = controlled vocabulary of chaining types
+ *   (see ADR §"Schema constraints"); two agents chain when the first's
+ *   `output_types` overlap the second's `input_types`.
+ * - `mcp_servers` = MCP servers the agent's frontmatter `tools:` reference
+ *   (deduplicated; agents without `mcp__*__` tools list none).
+ * - `is_terminal` = true only for `spanish-summarizer` (pipeline end).
  */
 export const AGENTS_MANIFEST: AgentManifestEntry[] = [
   {
-    agent_id: 'legal-intake',
-    display_name: 'Legal Intake (ES)',
-    input_types: ['facts', 'parties'],
-    output_types: ['case_summary', 'jurisdictional_notes'],
+    agent_id: 'autonomic-law-expert',
+    display_name: 'Autonomic Law Expert',
+    input_types: ['legal_query', 'case_facts', 'brief', 'documents'],
+    output_types: ['analysis'],
+    mcp_servers: ['catalunya-legal', 'congreso-debates', 'derecho-historico'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'chronology-builder',
+    display_name: 'Chronology Builder',
+    input_types: ['documents', 'case_facts', 'brief'],
+    output_types: ['chronology'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-adversary',
+    display_name: 'Spanish Adversary',
+    input_types: ['case_facts', 'position', 'research_findings', 'brief', 'strategy', 'draft_text'],
+    output_types: ['challenge'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-advocate',
+    display_name: 'Spanish Advocate',
+    input_types: ['case_facts', 'research_findings', 'brief', 'strategy', 'chronology'],
+    output_types: ['position'],
+    mcp_servers: ['cendoj-jurisprudencia', 'doctrina-academica', 'legal-persona-esp', 'tribunal-constitucional'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-briefing-coordinator',
+    display_name: 'Spanish Briefing Coordinator',
+    input_types: ['legal_query', 'case_facts', 'documents'],
+    output_types: ['brief'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-citation-expert',
+    display_name: 'Spanish Citation Expert',
+    input_types: ['draft_text', 'research_findings', 'citations'],
+    output_types: ['verified_citations'],
     mcp_servers: ['legal-citations-esp'],
     is_terminal: false,
   },
   {
-    agent_id: 'legal-chronology',
-    display_name: 'Legal Chronology Builder (ES)',
-    input_types: ['case_summary', 'jurisdictional_notes', 'documents'],
-    output_types: ['timeline', 'hitos_procesales'],
-    mcp_servers: ['cendoj-jurisprudencia', 'boe-legislacion'],
+    agent_id: 'spanish-compliance-expert',
+    display_name: 'Spanish Compliance Expert',
+    input_types: ['legal_query', 'contract', 'case_facts', 'brief', 'analysis', 'documents'],
+    output_types: ['compliance_report', 'analysis'],
+    mcp_servers: ['busqueda-general', 'legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-corporate-expert',
+    display_name: 'Spanish Corporate Expert',
+    input_types: ['legal_query', 'contract', 'case_facts', 'brief', 'analysis'],
+    output_types: ['analysis'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-data-protection-expert',
+    display_name: 'Spanish Data Protection Expert',
+    input_types: ['legal_query', 'contract', 'case_facts', 'analysis'],
+    output_types: ['analysis'],
+    mcp_servers: ['eu-law-esp', 'legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-fiscal-expert',
+    display_name: 'Spanish Fiscal Expert',
+    input_types: ['legal_query', 'contract', 'case_facts', 'analysis'],
+    output_types: ['analysis'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-judicial-analyst',
+    display_name: 'Spanish Judicial Analyst',
+    input_types: ['analysis', 'position', 'challenge', 'research_findings', 'case_facts', 'strategy', 'chronology'],
+    output_types: ['analysis', 'position'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-legal-drafter',
+    display_name: 'Spanish Legal Drafter',
+    input_types: ['research_findings', 'analysis', 'brief', 'strategy', 'risk_assessment', 'compliance_report', 'position', 'contract', 'citations', 'chronology', 'structured_prompt', 'challenge'],
+    output_types: ['draft_text', 'contract'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-legal-researcher',
+    display_name: 'Spanish Legal Researcher',
+    input_types: ['legal_query', 'case_facts', 'brief', 'structured_prompt', 'chronology'],
+    output_types: ['research_findings', 'citations'],
+    mcp_servers: ['boe-legislacion', 'cendoj-jurisprudencia', 'doctrina-academica', 'tribunal-constitucional'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-legal-translator',
+    display_name: 'Spanish Legal Translator',
+    input_types: ['draft_text', 'contract', 'analysis', 'brief'],
+    output_types: ['translation'],
+    mcp_servers: [],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-litigation-strategist',
+    display_name: 'Spanish Litigation Strategist',
+    input_types: ['case_facts', 'research_findings', 'brief', 'chronology', 'legal_query'],
+    output_types: ['strategy', 'procedural_plan'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-orchestrator',
+    display_name: 'Spanish Orchestrator',
+    input_types: ['legal_query', 'case_facts'],
+    output_types: ['task_plan'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-procedure-expert',
+    display_name: 'Spanish Procedure Expert',
+    input_types: ['legal_query', 'research_findings', 'brief', 'case_facts'],
+    output_types: ['procedural_plan'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-prompt-engineer',
+    display_name: 'Spanish Prompt Engineer',
+    input_types: ['legal_query'],
+    output_types: ['structured_prompt'],
+    mcp_servers: [],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-realestate-expert',
+    display_name: 'Spanish Real Estate Expert',
+    input_types: ['legal_query', 'contract', 'case_facts', 'documents'],
+    output_types: ['analysis'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-risk-analyst',
+    display_name: 'Spanish Risk Analyst',
+    input_types: ['analysis', 'case_facts', 'strategy', 'research_findings', 'brief'],
+    output_types: ['risk_assessment'],
+    mcp_servers: ['legal-persona-esp'],
+    is_terminal: false,
+  },
+  {
+    agent_id: 'spanish-summarizer',
+    display_name: 'Spanish Summarizer',
+    input_types: ['research_findings', 'analysis', 'strategy', 'risk_assessment', 'compliance_report', 'draft_text', 'citations', 'verified_citations', 'chronology', 'translation', 'brief', 'position', 'challenge'],
+    output_types: ['executive_summary'],
+    mcp_servers: [],
     is_terminal: true,
   },
 ];

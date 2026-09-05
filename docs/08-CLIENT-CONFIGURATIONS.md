@@ -2,7 +2,7 @@
 
 ## Overview
 
-BetterCallClaude España exposes 11 MCP servers via the **official MCP HTTP protocol** (`StreamableHTTPServerTransport`).
+BetterCallClaude España exposes 12 MCP servers via the **official MCP HTTP protocol** (`StreamableHTTPServerTransport`).
 
 Three client configs are provided — pick the one that matches your client:
 
@@ -35,7 +35,8 @@ Copy `.mcp.json` from the repo root into your client config:
     "doctrina-academica": { "type": "http", "url": "https://mcp.bettercallclaude.es/doctrina-academica/mcp" },
     "derecho-historico": { "type": "http", "url": "https://mcp.bettercallclaude.es/derecho-historico/mcp" },
     "catalunya-legal": { "type": "http", "url": "https://mcp.bettercallclaude.es/catalunya-legal/mcp" },
-    "busqueda-general": { "type": "http", "url": "https://mcp.bettercallclaude.es/busqueda-general/mcp" }
+    "busqueda-general": { "type": "http", "url": "https://mcp.bettercallclaude.es/busqueda-general/mcp" },
+    "workflows-esp": { "type": "http", "url": "https://mcp.bettercallclaude.es/workflows-esp/mcp" }
   }
 }
 ```
@@ -69,47 +70,52 @@ Copy to your Claude Desktop config file:
   "mcpServers": {
     "boe-legislacion": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/boe-legislacion/src/server.ts"]
+      "args": ["tsx", "mcp-servers/boe-legislacion/src/stdio.ts"]
     },
     "legal-citations-esp": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/legal-citations-esp/src/server.ts"]
+      "args": ["tsx", "mcp-servers/legal-citations-esp/src/stdio.ts"]
     },
     "legal-persona-esp": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/legal-persona-esp/src/server.ts"]
+      "args": ["tsx", "mcp-servers/legal-persona-esp/src/stdio.ts"]
     },
     "cendoj-jurisprudencia": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/cendoj-jurisprudencia/src/server.ts"]
+      "args": ["tsx", "mcp-servers/cendoj-jurisprudencia/src/stdio.ts"]
     },
     "tribunal-constitucional": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/tribunal-constitucional/src/server.ts"]
+      "args": ["tsx", "mcp-servers/tribunal-constitucional/src/stdio.ts"]
     },
     "eu-law-esp": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/eu-law-esp/src/server.ts"]
+      "args": ["tsx", "mcp-servers/eu-law-esp/src/stdio.ts"]
     },
     "congreso-debates": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/congreso-debates/src/server.ts"]
+      "args": ["tsx", "mcp-servers/congreso-debates/src/stdio.ts"]
     },
     "doctrina-academica": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/doctrina-academica/src/server.ts"]
+      "args": ["tsx", "mcp-servers/doctrina-academica/src/stdio.ts"]
     },
     "derecho-historico": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/derecho-historico/src/server.ts"]
+      "args": ["tsx", "mcp-servers/derecho-historico/src/stdio.ts"]
     },
     "catalunya-legal": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/catalunya-legal/src/server.ts"]
+      "args": ["tsx", "mcp-servers/catalunya-legal/src/stdio.ts"]
     },
     "busqueda-general": {
       "command": "npx",
-      "args": ["tsx", "mcp-servers/busqueda-general/src/server.ts"]
+      "args": ["tsx", "mcp-servers/busqueda-general/src/stdio.ts"]
+    },
+    "workflows-esp": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers/workflows/src/stdio.ts"],
+      "env": { "WORKFLOWS_STORE": "sqlite" }
     }
   }
 }
@@ -147,7 +153,7 @@ If you want to use the Railway deployment from standard Claude Desktop, you need
 }
 ```
 
-See `claude-desktop-remote-config.json` for the full file with all 11 servers.
+See `claude-desktop-remote-config.json` for the full file with all 12 servers.
 
 ---
 
@@ -236,6 +242,7 @@ curl -X POST https://mcp.bettercallclaude.es/boe-legislacion/mcp \
 | Derecho Histórico | `POST /derecho-historico/mcp` |
 | Catalunya Legal | `POST /catalunya-legal/mcp` |
 | Búsqueda General | `POST /busqueda-general/mcp` |
+| Workflows ESP | `POST /workflows-esp/mcp` |
 | Health check | `GET /health` |
 
 ---
@@ -273,3 +280,6 @@ const result = await client.callTool({
 | `PORT` | `3000` | HTTP aggregator port |
 | `LOG_LEVEL` | `info` | Pino log level |
 | `MCP_BASE_URL` | `https://mcp.bettercallclaude.es` | Base URL for the bridge |
+| `WORKFLOWS_STORE` | — | workflows-esp provider: `memory` \| `sqlite` \| `postgres` (defaults to `postgres` when `DATABASE_URL` is set, else `memory`) |
+| `DATABASE_URL` | — | Postgres connection string for the workflows-esp store (production provider) |
+| `WORKFLOWS_SQLITE_PATH` | `workflows-esp.sqlite` | SQLite file path when `WORKFLOWS_STORE=sqlite` (dev-only provider) |

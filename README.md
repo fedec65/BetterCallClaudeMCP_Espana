@@ -42,6 +42,12 @@ Quick start:
 | `catalunya-legal` | Projecte Norma Civil (UdG) | 3 | `/catalunya-legal/mcp` |
 | `busqueda-general` | Portico Legal, Findiur | 3 | `/busqueda-general/mcp` |
 
+### Tier 4 — Agent Orchestration & Persistence
+
+| Server | Source | Tools | Endpoint |
+|--------|--------|-------|----------|
+| `workflows-esp` | Workflow store (ADR 0001) | 9 | `/workflows-esp/mcp` |
+
 ## Structure
 
 ```
@@ -57,7 +63,8 @@ mcp-servers/
 ├── doctrina-academica/       # Academic doctrine
 ├── derecho-historico/        # Historical legislation
 ├── catalunya-legal/          # Catalan civil law
-└── busqueda-general/         # Generalist portals
+├── busqueda-general/         # Generalist portals
+└── workflows/                # Persistent workflow store (ADR 0001)
 
 mcp-servers-http/             # Express HTTP aggregator
 railway.toml                  # Railway deployment config
@@ -80,7 +87,8 @@ Add to your `.mcp.json`:
     "doctrina-academica": { "type": "http", "url": "https://mcp.bettercallclaude.es/doctrina-academica/mcp" },
     "derecho-historico": { "type": "http", "url": "https://mcp.bettercallclaude.es/derecho-historico/mcp" },
     "catalunya-legal": { "type": "http", "url": "https://mcp.bettercallclaude.es/catalunya-legal/mcp" },
-    "busqueda-general": { "type": "http", "url": "https://mcp.bettercallclaude.es/busqueda-general/mcp" }
+    "busqueda-general": { "type": "http", "url": "https://mcp.bettercallclaude.es/busqueda-general/mcp" },
+    "workflows-esp": { "type": "http", "url": "https://mcp.bettercallclaude.es/workflows-esp/mcp" }
   }
 }
 ```

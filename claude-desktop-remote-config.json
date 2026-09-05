@@ -54,6 +54,11 @@
       "command": "npx",
       "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "busqueda-general"],
       "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
+    },
+    "workflows-esp": {
+      "command": "npx",
+      "args": ["tsx", "mcp-servers-http/src/mcp-bridge.ts", "workflows-esp"],
+      "env": { "MCP_BASE_URL": "https://mcp.bettercallclaude.es" }
     }
   }
 }

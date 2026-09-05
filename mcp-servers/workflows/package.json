@@ -1,6 +1,6 @@
 {
   "name": "@bettercallclaude/esp-workflows",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Persistent workflow storage MCP server for the BetterCallClaude España plugin (parity with CH workflows-ch / IT workflows-ita)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,7 +16,11 @@
     "pg": "^8.11.0",
     "zod": "^3.23.0"
   },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.0.0"
+  },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20.14.0",
     "@types/pg": "^8.11.0",
     "typescript": "^5.4.5"

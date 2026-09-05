@@ -118,31 +118,128 @@ describe('list_agents (integration)', () => {
   });
 });
 
-describe('stub tools (integration)', () => {
-  it('save_workflow throws not_implemented envelope', async () => {
-    const store = new InMemoryWorkflowStore();
-    const server = createWorkflowsServer({ store });
-    (server as unknown as { _store: InMemoryWorkflowStore })._store = store;
-    const res = await callTool(server, 'save_workflow', {
-      user_id: 'bcc-test1234',
-      slug: 'flusso-nda',
-      name: 'NDA flow',
-      description: 'test',
-      pipeline: [{ step: 1, agent_id: 'legal-intake', purpose: 'a' }],
-      output_spec: 'something',
-    });
-    expect(res.isError).toBe(true);
-    const body = JSON.parse(res.content[0].text);
-    expect(body).toMatchObject({ error: 'not_implemented', tool: 'save_workflow' });
+describe('workflow CRUD (integration)', () => {
+  const VALID_PIPELINE = [
+    { step: 1, agent_id: 'spanish-briefing-coordinator', purpose: 'assemble brief' },
+    { step: 2, agent_id: 'spanish-legal-researcher', purpose: 'research the brief' },
+    { step: 3, agent_id: 'spanish-legal-drafter', purpose: 'draft submission' },
+  ];
+
+  const saveArgs = (overrides: Record<string, unknown> = {}) => ({
+    user_id: 'bcc-test1234',
+    slug: 'flusso-nda',
+    name: 'NDA flow',
+    description: 'Test NDA workflow',
+    pipeline: VALID_PIPELINE,
+    output_spec: 'final contract text',
+    ...overrides,
   });
 
-  it('delete_user throws not_implemented envelope (LOPDGDD delta)', async () => {
+  function freshServer(): ReturnType<typeof createWorkflowsServer> {
     const store = new InMemoryWorkflowStore();
     const server = createWorkflowsServer({ store });
     (server as unknown as { _store: InMemoryWorkflowStore })._store = store;
-    const res = await callTool(server, 'delete_user', { user_id: 'bcc-test1234' });
-    expect(res.isError).toBe(true);
+    return server;
+  }
+
+  it('save_workflow persists and get_workflow retrieves it', async () => {
+    const server = freshServer();
+    const save = await callTool(server, 'save_workflow', saveArgs());
+    expect(save.isError).toBeUndefined();
+    const saved = JSON.parse(save.content[0].text);
+    expect(saved.saved).toBe(true);
+    expect(saved.workflow).toMatchObject({
+      user_id: 'bcc-test1234',
+      slug: 'flusso-nda',
+      version: 1,
+      visibility: 'private',
+      status: 'active',
+    });
+    expect(saved.workflow.pipeline).toHaveLength(3);
+
+    const get = await callTool(server, 'get_workflow', { user_id: 'bcc-test1234', slug: 'flusso-nda' });
+    expect(get.isError).toBeUndefined();
+    expect(JSON.parse(get.content[0].text).slug).toBe('flusso-nda');
+  });
+
+  it('save_workflow upserts on (user_id, slug): bumps version, keeps single row', async () => {
+    const server = freshServer();
+    await callTool(server, 'save_workflow', saveArgs());
+    const res = await callTool(server, 'save_workflow', saveArgs({ name: 'NDA flow v2' }));
     const body = JSON.parse(res.content[0].text);
-    expect(body).toMatchObject({ error: 'not_implemented', tool: 'delete_user' });
+    expect(body.saved).toBe(true);
+    expect(body.workflow.version).toBe(2);
+    expect(body.workflow.name).toBe('NDA flow v2');
+
+    const list = await callTool(server, 'list_workflows', {
+      user_id: 'bcc-test1234',
+      include_team: false,
+      include_public: false,
+    });
+    const rows = JSON.parse(list.content[0].text);
+    expect(rows).toHaveLength(1);
+  });
+
+  it('save_workflow rejects an invalid pipeline (unknown agent)', async () => {
+    const server = freshServer();
+    await expect(
+      callTool(server, 'save_workflow', saveArgs({ pipeline: [{ step: 1, agent_id: 'ghost-agent', purpose: 'x' }] })),
+    ).rejects.toThrow(); // WorkflowValidationError propagates out of the dispatcher
+  });
+
+  it('public workflows are readable by other users via get_workflow', async () => {
+    const server = freshServer();
+    await callTool(server, 'save_workflow', saveArgs({ visibility: 'public' }));
+
+    const other = await callTool(server, 'get_workflow', { user_id: 'bcc-other0001', slug: 'flusso-nda' });
+    expect(JSON.parse(other.content[0].text).slug).toBe('flusso-nda');
+  });
+
+  it('log_run: running then completed closes the same run row', async () => {
+    const server = freshServer();
+    const save = await callTool(server, 'save_workflow', saveArgs());
+    const workflowId = JSON.parse(save.content[0].text).workflow.id;
+
+    const started = await callTool(server, 'log_run', {
+      workflow_id: workflowId,
+      user_id: 'bcc-test1234',
+      status: 'running',
+    });
+    const runId = JSON.parse(started.content[0].text).run_id;
+
+    const done = await callTool(server, 'log_run', {
+      workflow_id: workflowId,
+      user_id: 'bcc-test1234',
+      status: 'completed',
+      output_summary: 'done',
+    });
+    expect(JSON.parse(done.content[0].text).run_id).toBe(runId);
+  });
+
+  it('delete_workflow is owner-only; owner delete succeeds', async () => {
+    const server = freshServer();
+    await callTool(server, 'save_workflow', saveArgs());
+
+    const foreign = await callTool(server, 'delete_workflow', { user_id: 'bcc-other0001', slug: 'flusso-nda' });
+    expect(JSON.parse(foreign.content[0].text)).toEqual({ deleted: false });
+
+    const own = await callTool(server, 'delete_workflow', { user_id: 'bcc-test1234', slug: 'flusso-nda' });
+    expect(JSON.parse(own.content[0].text)).toEqual({ deleted: true });
+  });
+
+  it('delete_user cascades workflows, runs and claimed ids', async () => {
+    const server = freshServer();
+    await callTool(server, 'claim_user_id', { user_id: 'bcc-test1234' });
+    const save = await callTool(server, 'save_workflow', saveArgs());
+    const workflowId = JSON.parse(save.content[0].text).workflow.id;
+    await callTool(server, 'log_run', {
+      workflow_id: workflowId,
+      user_id: 'bcc-test1234',
+      status: 'running',
+    });
+
+    const res = await callTool(server, 'delete_user', { user_id: 'bcc-test1234' });
+    const body = JSON.parse(res.content[0].text);
+    expect(body).toMatchObject({ deleted: true, workflows_cascade: 1 });
   });
 });

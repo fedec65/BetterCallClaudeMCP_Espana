@@ -1,18 +1,15 @@
 import { z } from 'zod';
 
 /**
- * Raised by stub tool implementations that are pending follow-up work.
+ * Raised when a tool implementation is missing (defensive fallback — all nine
+ * tools are implemented since t34 / #35; kept for parity with CH/IT contract).
  * Mapped to MCP error envelope by `server.ts` with code "not_implemented".
  */
 export class ToolNotImplementedError extends Error {
   readonly code = 'not_implemented';
   readonly tool: string;
   constructor(tool: string, hint?: string) {
-    super(
-      `Tool "${tool}" is not yet implemented in this scaffold (t33 / Map D #33).${
-        hint ? ` ${hint}` : ''
-      }`,
-    );
+    super(`Tool "${tool}" is not implemented.${hint ? ` ${hint}` : ''}`);
     this.name = 'ToolNotImplementedError';
     this.tool = tool;
   }

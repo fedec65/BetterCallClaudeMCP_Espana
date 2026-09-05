@@ -50,20 +50,20 @@ export interface LogRunResult {
 
 /**
  * Storage abstraction for `workflows-esp`. The factory `createWorkflowsServer`
- * delegates to one of these — production uses `PostgresWorkflowStore`, tests
- * use `InMemoryWorkflowStore`.
+ * delegates to one of these — production uses `PostgresWorkflowStore`
+ * (Railway `DATABASE_URL`), local dev can opt into `SqliteWorkflowStore`
+ * (`WORKFLOWS_STORE=sqlite`), and tests use `InMemoryWorkflowStore`.
+ * `resolveStore()` picks the provider from the environment once per process.
  *
- * **Status by tool (scaffold t33)**:
- * - `claimUserId`, `listAgents`, `validatePipeline` → fully implemented in both stores.
- * - All other methods → throw `ToolNotImplementedError` (pending t34 / #35).
+ * All nine methods are implemented across the three stores (t34 / #35).
  */
 export interface WorkflowStore {
-  // ---------- implemented in scaffold ----------
+  // ---------- identity + manifest surface ----------
   claimUserId(user_id: string): Promise<ClaimUserIdResult>;
   listAgents(): Promise<AgentManifestEntry[]>;
   validatePipeline(pipeline: PipelineStep[]): Promise<{ valid: boolean; errors: Array<{ code: string; step?: number; message: string }> }>;
 
-  // ---------- stubs (ToolNotImplementedError) ----------
+  // ---------- persistence surface ----------
   saveWorkflow(input: SaveWorkflowInput): Promise<SaveWorkflowResult>;
   listWorkflows(options: ListWorkflowsOptions): Promise<WorkflowRow[]>;
   getWorkflow(user_id: string, slug: string): Promise<WorkflowRow | null>;

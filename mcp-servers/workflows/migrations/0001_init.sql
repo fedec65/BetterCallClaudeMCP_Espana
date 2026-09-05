@@ -1,17 +1,10 @@
-/**
- * SCHEMA_SQL — verbatim from ADR 0001 §"Schema Postgres".
- *
- * Notes:
- * - `gen_random_uuid()` requires `pgcrypto` (or PG ≥ 13). Verify on the
- *   managed Postgres target (Railway ships it).
- * - Schema is created idempotently on cold start (`init()` in
- *   `store-postgres.ts`); `migrations/0001_init.sql` is the canonical copy
- *   for manual/ops use (a unit test asserts they stay identical).
- * - Retention: ADR §4(a) adds a nightly sweep on `workflow_runs` for rows
- *   older than 90 days; the cron job is deployed out-of-band after the
- *   service goes live (t34 / #35 keeps it out of the process).
- */
-export const SCHEMA_SQL = `
+-- 0001_init.sql — canonical copy of SCHEMA_SQL (mcp-servers/workflows/src/sql.ts).
+-- Verbatim from ADR 0001 §"Schema Postgres". A unit test asserts this file and
+-- SCHEMA_SQL stay identical (whitespace-insensitive).
+--
+-- Applied idempotently at runtime by PostgresWorkflowStore.init(); this file is
+-- the ops-facing copy for manual provisioning / drift inspection.
+
 CREATE TABLE IF NOT EXISTS agents_manifest (
     id              SERIAL PRIMARY KEY,
     agent_id        TEXT NOT NULL UNIQUE,
@@ -54,4 +47,3 @@ CREATE TABLE IF NOT EXISTS claimed_ids (
     user_id         TEXT PRIMARY KEY,
     created_at      TIMESTAMPTZ DEFAULT now()
 );
-`;
